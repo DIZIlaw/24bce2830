@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Heart, PlusCircle, Search, Menu, X, LogIn, Inbox } from 'lucide-react';
+import { ShoppingBag, User, Heart, PlusCircle, Search, Menu, X, LogIn, Inbox, Code2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import DeveloperModal from './DeveloperModal';
 
 export default function Navbar() {
   const { currentUser, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDevModalOpen, setIsDevModalOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -16,6 +18,12 @@ export default function Navbar() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenModal = () => setIsDevModalOpen(true);
+    window.addEventListener('open-developer-modal', handleOpenModal);
+    return () => window.removeEventListener('open-developer-modal', handleOpenModal);
   }, []);
 
   const navLinks = [
@@ -38,7 +46,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             <div className="flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
               {navLinks.map((link) => (
                 <Link key={link.name} to={link.path} className={`hover:text-primary-500 transition-colors ${location.pathname === link.path ? 'text-primary-500' : ''}`}>
@@ -46,6 +54,16 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
+
+            {/* Developer Detail Button */}
+            <button
+              onClick={() => setIsDevModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all shadow-sm hover:scale-105 active:scale-95"
+              title="Project & Developer Details"
+            >
+              <Code2 size={13} className="text-emerald-600 dark:text-emerald-400" />
+              <span>Developer Details</span>
+            </button>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
 
@@ -103,6 +121,18 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setIsDevModalOpen(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+              >
+                <Code2 size={16} />
+                <span>Developer Details (24BCE2830)</span>
+              </button>
+
               <div className="border-t border-gray-100 dark:border-gray-800 pt-4"></div>
               {currentUser ? (
                 <>
@@ -123,6 +153,9 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Developer Details Modal */}
+      <DeveloperModal isOpen={isDevModalOpen} onClose={() => setIsDevModalOpen(false)} />
     </nav>
   );
 }

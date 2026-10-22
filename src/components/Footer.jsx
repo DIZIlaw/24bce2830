@@ -36,10 +36,16 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-        <div className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center text-xs">
+        <div className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center text-xs gap-4">
           <p>© {new Date().getFullYear()} VIT Campus Marketplace. All rights reserved.</p>
-          <div className="mt-4 md:mt-0 space-x-4">
-             <span>Made for VITians 🚀</span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-developer-modal'))}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors border border-emerald-200/50 dark:border-emerald-800/40"
+            >
+              👨‍💻 Developer & Project Details (24BCE2830)
+            </button>
+            <span>Made for VITians 🚀</span>
           </div>
         </div>
       </div>
