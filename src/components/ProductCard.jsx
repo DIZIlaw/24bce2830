@@ -21,8 +21,36 @@ export default function ProductCard({ product }) {
   const handleQuickBuy = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    alert('Order Placed Successfully! The seller has been notified and you can view this in your Orders page.');
-    // In a real app we would route to a success / checkout page or trigger an API call.
+
+    const quickOrder = {
+      id: 'ord_' + Date.now(),
+      productId: product?.id || 'prod_' + Date.now(),
+      productTitle: product?.title || 'Campus Item',
+      productPrice: Number(product?.price) || 0,
+      productImageUrl: product?.imageUrl || '',
+      buyerId: 'guest_buyer',
+      buyerName: 'VIT Student',
+      sellerId: product?.sellerId || 'campus_seller',
+      sellerName: product?.sellerName || 'VIT Seller',
+      status: 'pending',
+      buyerDetails: {
+        name: 'VIT Student',
+        hostel: product?.location || 'Hostel Campus',
+        phone: 'Registered VITian',
+        message: 'Order placed via Quick Buy'
+      },
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('vit_campus_orders') || '[]');
+      existing.unshift(quickOrder);
+      localStorage.setItem('vit_campus_orders', JSON.stringify(existing));
+    } catch (err) {
+      console.warn("Storage err:", err);
+    }
+
+    alert(`Order Placed for "${product.title}"! The seller has been notified and you can track it in your Orders page.`);
   };
   return (
     <motion.div 

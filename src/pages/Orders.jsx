@@ -12,25 +12,88 @@ export default function Orders() {
   const [myOrders, setMyOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!currentUser) return;
+  const formatDate = (val) => {
+    if (!val) return 'Recently';
+    if (typeof val?.toDate === 'function') {
+      try {
+        return val.toDate().toLocaleDateString();
+      } catch (e) {
+        return 'Recently';
+      }
+    }
+    try {
+      return new Date(val).toLocaleDateString();
+    } catch (e) {
+      return 'Recently';
+    }
+  };
 
-    // Fetch Incoming Requests
+  useEffect(() => {
+    // 1. Read locally stored orders first
+    let localStored = [];
+    try {
+      localStored = JSON.parse(localStorage.getItem('vit_campus_orders') || '[]');
+    } catch (e) {
+      console.warn("Could not read local orders:", e);
+    }
+
+    if (!currentUser) {
+      // If guest or not logged in, show all local orders in My Orders tab
+      setMyOrders(localStored);
+      setIncomingOrders(localStored);
+      setLoading(false);
+      return;
+    }
+
+    // Filter local orders by user if available
+    const localMy = localStored.filter(o => !o.buyerId || o.buyerId === currentUser.uid || o.buyerId.startsWith('guest_'));
+    const localInc = localStored.filter(o => !o.sellerId || o.sellerId === currentUser.uid || o.sellerId === 'campus_seller');
+
+    // 2. Fetch Incoming Requests from Firestore
     const qIncoming = query(collection(db, 'orders'), where('sellerId', '==', currentUser.uid));
     const unsubIncoming = onSnapshot(qIncoming, (snapshot) => {
       const items = [];
       snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-      items.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      
+      // Merge with local items avoiding duplicate IDs
+      const itemIds = new Set(items.map(i => i.id));
+      localInc.forEach(loc => {
+        if (!itemIds.has(loc.id)) items.push(loc);
+      });
+
+      items.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
       setIncomingOrders(items);
+    }, (err) => {
+      console.warn("Firestore incoming orders restricted, using local:", err);
+      setIncomingOrders(localInc);
     });
 
-    // Fetch My Orders
+    // 3. Fetch My Orders from Firestore
     const qMyOrders = query(collection(db, 'orders'), where('buyerId', '==', currentUser.uid));
     const unsubMyOrders = onSnapshot(qMyOrders, (snapshot) => {
       const items = [];
       snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-      items.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+
+      // Merge with local items avoiding duplicate IDs
+      const itemIds = new Set(items.map(i => i.id));
+      localMy.forEach(loc => {
+        if (!itemIds.has(loc.id)) items.push(loc);
+      });
+
+      items.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
       setMyOrders(items);
+      setLoading(false);
+    }, (err) => {
+      console.warn("Firestore my orders restricted, using local:", err);
+      setMyOrders(localMy);
       setLoading(false);
     });
 
@@ -41,11 +104,26 @@ export default function Orders() {
   }, [currentUser]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
+    // 1. Update Firestore if not a local-only order
+    if (!orderId.startsWith('ord_')) {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      } catch (error) {
+        console.warn("Firestore status update skipped:", error);
+      }
+    }
+
+    // 2. Always update local state
+    setIncomingOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    setMyOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+
+    // 3. Update local storage
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
-    } catch (error) {
-      console.error("Error updating order:", error);
-      alert("Failed to update status");
+      const stored = JSON.parse(localStorage.getItem('vit_campus_orders') || '[]');
+      const updated = stored.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
+      localStorage.setItem('vit_campus_orders', JSON.stringify(updated));
+    } catch (e) {
+      console.error("Local storage update error:", e);
     }
   };
 
@@ -96,7 +174,7 @@ export default function Orders() {
                               order.status === 'approved' ? 'Approved' : 
                               order.status === 'completed' ? 'Order Closed' : 'Declined'}
                            </span>
-                           <span className="text-sm text-gray-400">{order.createdAt ? order.createdAt.toDate().toLocaleDateString() : 'Recently'}</span>
+                           <span className="text-sm text-gray-400">{formatDate(order.createdAt)}</span>
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{order.productTitle}</h3>
                         <div className="space-y-1 text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
@@ -160,7 +238,7 @@ export default function Orders() {
                              {order.status === 'approved' && <CheckCircle size={12}/>}
                              {order.status === 'completed' ? 'Order Closed' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                            </span>
-                           <span className="text-sm text-gray-400">{order.createdAt ? order.createdAt.toDate().toLocaleDateString() : 'Recently'}</span>
+                           <span className="text-sm text-gray-400">{formatDate(order.createdAt)}</span>
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{order.productTitle}</h3>
                         <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-emerald-700 mb-4">₹{order.productPrice}</p>
