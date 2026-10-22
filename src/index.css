@@ -1,13 +1,77 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-500: #10b981; /* Emerald Green */
+  --color-primary-600: #059669;
+  
+  --color-dark-surface: #1e1e1e;
+  --color-dark-bg: #121212;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  .glass-dark {
+    @apply bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  
+  .gradient-blob {
+    @apply absolute rounded-full blur-[120px] opacity-60 mix-blend-multiply dark:mix-blend-screen;
+    animation: moveBlob 20s infinite alternate;
+  }
+  .gradient-blob-1 {
+    top: -10%; left: -10%; width: 50vw; height: 50vw;
+    background: radial-gradient(circle, var(--color-primary-300, #93c5fd) 0%, rgba(255,255,255,0) 70%);
+    animation-delay: 0s;
+  }
+  .gradient-blob-2 {
+    top: 40%; right: -20%; width: 60vw; height: 60vw;
+    background: radial-gradient(circle, var(--color-primary-200, #bbf7d0) 0%, rgba(255,255,255,0) 70%);
+    animation-delay: -5s;
+    animation-direction: alternate-reverse;
+  }
+  .gradient-blob-3 {
+    bottom: -20%; left: 20%; width: 55vw; height: 55vw;
+    background: radial-gradient(circle, #e2e8f0 0%, rgba(255,255,255,0) 70%);
+    animation-delay: -10s;
+  }
+}
+
+@keyframes moveBlob {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(40px, 40px) scale(1); }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar for clean internal carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
