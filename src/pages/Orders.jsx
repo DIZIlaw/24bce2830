@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Inbox, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { Package, Inbox, CheckCircle, Clock, Loader2, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/firebaseConfig';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
@@ -175,6 +175,16 @@ export default function Orders() {
                               order.status === 'completed' ? 'Order Closed' : 'Declined'}
                            </span>
                            <span className="text-sm text-gray-400">{formatDate(order.createdAt)}</span>
+                           {order.paymentMethod === 'Razorpay' ? (
+                             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center gap-1 border border-emerald-300 dark:border-emerald-800">
+                               <CreditCard size={12} />
+                               Razorpay Paid
+                             </span>
+                           ) : (
+                             <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                               Cash on Handoff
+                             </span>
+                           )}
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{order.productTitle}</h3>
                         <div className="space-y-1 text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
@@ -239,6 +249,16 @@ export default function Orders() {
                              {order.status === 'completed' ? 'Order Closed' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                            </span>
                            <span className="text-sm text-gray-400">{formatDate(order.createdAt)}</span>
+                           {order.paymentMethod === 'Razorpay' ? (
+                             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center gap-1 border border-emerald-300 dark:border-emerald-800">
+                               <CreditCard size={12} />
+                               Razorpay Paid
+                             </span>
+                           ) : (
+                             <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                               Cash on Handoff
+                             </span>
+                           )}
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{order.productTitle}</h3>
                         <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-emerald-700 mb-4">₹{order.productPrice}</p>

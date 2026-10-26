@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, User, Clock, Heart, Share2, AlertCircle, MessageCircle, ShoppingBag, CheckCircle, Loader2 } from 'lucide-react';
+import { MapPin, User, Clock, Heart, Share2, AlertCircle, MessageCircle, ShoppingBag, CheckCircle, Loader2, CreditCard, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ChatDrawer from '../components/ChatDrawer';
 import { db } from '../firebase/firebaseConfig';
 import { doc, getDoc, collection, addDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { RAZORPAY_KEY_ID, loadRazorpayScript } from '../utils/razorpay';
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -21,7 +22,9 @@ export default function ProductPage() {
   const [orderHostel, setOrderHostel] = useState('');
   const [orderPhone, setOrderPhone] = useState('');
   const [orderMessage, setOrderMessage] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('razorpay'); // 'razorpay' | 'cash'
   const [ordering, setOrdering] = useState(false);
+  const [completedOrderMeta, setCompletedOrderMeta] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -43,12 +46,7 @@ export default function ProductPage() {
     fetchProduct();
   }, [id]);
 
-  const handleOrderSubmit = async () => {
-    if (!orderName || !orderHostel || !orderPhone) {
-      alert("Please fill out your Name, Hostel, and Phone number.");
-      return;
-    }
-    
+  const finalizeOrder = async (meta = {}) => {
     setOrdering(true);
 
     const safeOrder = {
@@ -60,7 +58,10 @@ export default function ProductPage() {
       buyerName: orderName || currentUser?.name || 'VITian Buyer',
       sellerId: product?.sellerId || 'campus_seller',
       sellerName: product?.sellerName || 'VIT Seller',
-      status: 'pending',
+      status: meta.status || 'pending',
+      paymentMethod: meta.paymentMethod || (paymentMethod === 'razorpay' ? 'Razorpay' : 'Cash on Handoff'),
+      paymentStatus: meta.paymentStatus || (paymentMethod === 'razorpay' ? 'Paid' : 'Pending'),
+      razorpayPaymentId: meta.razorpayPaymentId || null,
       buyerDetails: {
         name: orderName,
         hostel: orderHostel,
@@ -112,10 +113,90 @@ export default function ProductPage() {
     setOrdering(false);
 
     if (placed) {
+      setCompletedOrderMeta(safeOrder);
       setPurchaseSuccess(true);
       setShowOrderForm(false);
     } else {
       alert("Failed to place order. Please try again.");
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
+    setOrdering(true);
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded || !window.Razorpay) {
+      alert("Razorpay checkout is currently unavailable. Please verify your connection.");
+      setOrdering(false);
+      return;
+    }
+
+    const price = Number(product?.price) || 0;
+    const amountInPaise = Math.round(price * 100);
+
+    const options = {
+      key: RAZORPAY_KEY_ID,
+      amount: amountInPaise,
+      currency: "INR",
+      name: "VIT Campus Marketplace",
+      description: `Payment for ${product?.title || 'Campus Item'}`,
+      image: product?.imageUrl || undefined,
+      prefill: {
+        name: orderName,
+        email: currentUser?.email || "student@vitstudent.ac.in",
+        contact: orderPhone || "9999999999"
+      },
+      notes: {
+        productId: product?.id || '',
+        productTitle: product?.title || '',
+        hostel: orderHostel,
+        seller: product?.sellerName || ''
+      },
+      theme: {
+        color: "#059669"
+      },
+      handler: async function (response) {
+        await finalizeOrder({
+          paymentMethod: 'Razorpay',
+          paymentStatus: 'Paid',
+          razorpayPaymentId: response.razorpay_payment_id,
+          status: 'approved'
+        });
+      },
+      modal: {
+        ondismiss: function () {
+          setOrdering(false);
+        }
+      }
+    };
+
+    try {
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        alert("Payment Failed: " + (response.error?.description || "Payment cancelled or declined"));
+        setOrdering(false);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error("Razorpay open error:", err);
+      alert("Error opening Razorpay checkout. Please try again.");
+      setOrdering(false);
+    }
+  };
+
+  const handleOrderSubmit = async () => {
+    if (!orderName || !orderHostel || !orderPhone) {
+      alert("Please fill out your Name, Hostel, and Phone number.");
+      return;
+    }
+
+    if (paymentMethod === 'razorpay') {
+      await handleRazorpayPayment();
+    } else {
+      await finalizeOrder({
+        paymentMethod: 'Cash on Handoff',
+        paymentStatus: 'Pending',
+        status: 'pending'
+      });
     }
   };
 
@@ -198,24 +279,100 @@ export default function ProductPage() {
 
           <div className="mt-auto space-y-4">
              {purchaseSuccess ? (
-               <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 p-6 flex flex-col items-center justify-center text-center rounded-2xl border border-emerald-200 dark:border-emerald-800/30">
-                 <CheckCircle size={40} className="mb-3 text-emerald-500" />
-                 <h3 className="text-xl font-bold mb-1">Order Placed Successfully!</h3>
-                 <p className="text-sm opacity-90">The seller has been notified. You can track this in your Orders page.</p>
+               <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 p-6 flex flex-col items-center justify-center text-center rounded-2xl border border-emerald-200 dark:border-emerald-800">
+                 <CheckCircle size={44} className="mb-3 text-emerald-500" />
+                 <h3 className="text-xl font-bold mb-1">
+                   {completedOrderMeta?.paymentMethod === 'Razorpay' ? 'Payment & Order Placed!' : 'Order Placed Successfully!'}
+                 </h3>
+                 <p className="text-sm opacity-90 mb-3">
+                   {completedOrderMeta?.paymentMethod === 'Razorpay'
+                     ? `Paid ₹${product.price} via Razorpay Test Gateway.`
+                     : 'The seller has been notified for campus handoff.'}
+                 </p>
+                 {completedOrderMeta?.razorpayPaymentId && (
+                   <div className="bg-white/80 dark:bg-black/40 px-3.5 py-1.5 rounded-lg text-xs font-mono mb-4 border border-emerald-200 dark:border-emerald-800">
+                     Razorpay Payment ID: <span className="font-bold text-emerald-700 dark:text-emerald-300">{completedOrderMeta.razorpayPaymentId}</span>
+                   </div>
+                 )}
+                 <Link to="/orders" className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-md">
+                   View in Orders
+                 </Link>
                </div>
              ) : showOrderForm ? (
                <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-4">Place Order Request</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-900 dark:text-white">Place Order Request</h3>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800">
+                      ⚡ Razorpay Test Active
+                    </span>
+                  </div>
                   <div className="space-y-4">
                     <input type="text" value={orderName} onChange={e => setOrderName(e.target.value)} placeholder="Your Name" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm"/>
-                    <input type="text" value={orderHostel} onChange={e => setOrderHostel(e.target.value)} placeholder="Hostel/Room No." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm"/>
+                    <input type="text" value={orderHostel} onChange={e => setOrderHostel(e.target.value)} placeholder="Hostel / Room No. (e.g. Block A 304)" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm"/>
                     <input type="tel" value={orderPhone} onChange={e => setOrderPhone(e.target.value)} placeholder="Phone Number" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm"/>
-                    <textarea value={orderMessage} onChange={e => setOrderMessage(e.target.value)} placeholder="Message to seller (Optional)..." rows="3" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm resize-none"></textarea>
-                    <div className="flex gap-3">
-                      <button onClick={() => setShowOrderForm(false)} disabled={ordering} className="px-6 py-3 rounded-xl font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 transition-colors w-1/3">Cancel</button>
-                      <button onClick={handleOrderSubmit} disabled={ordering} className="px-6 py-3 rounded-xl font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 transition-colors flex-1 shadow-lg disabled:opacity-70 flex items-center justify-center gap-2">
-                        {ordering && <Loader2 size={18} className="animate-spin" />}
-                        {ordering ? 'Placing...' : 'Confirm Request'}
+                    <textarea value={orderMessage} onChange={e => setOrderMessage(e.target.value)} placeholder="Message to seller (Optional)..." rows="2" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm resize-none"></textarea>
+
+                    {/* Payment Options */}
+                    <div className="pt-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Payment Method</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('razorpay')}
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                            paymentMethod === 'razorpay'
+                              ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
+                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-lg ${paymentMethod === 'razorpay' ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                            <CreditCard size={18} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold flex items-center gap-1.5">
+                              Razorpay
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">TEST</span>
+                            </div>
+                            <div className="text-xs opacity-75">UPI, Cards, NetBanking</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('cash')}
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                            paymentMethod === 'cash'
+                              ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
+                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-lg ${paymentMethod === 'cash' ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                            <ShoppingBag size={18} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold">Cash on Handoff</div>
+                            <div className="text-xs opacity-75">Pay in person at VIT</div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setShowOrderForm(false)} disabled={ordering} className="px-5 py-3 rounded-xl font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-300 transition-colors w-1/3">Cancel</button>
+                      <button onClick={handleOrderSubmit} disabled={ordering} className="px-6 py-3 rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors flex-1 shadow-lg disabled:opacity-70 flex items-center justify-center gap-2">
+                        {ordering ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Processing...</span>
+                          </>
+                        ) : paymentMethod === 'razorpay' ? (
+                          <>
+                            <ShieldCheck size={18} />
+                            <span>Pay ₹{product.price} with Razorpay</span>
+                          </>
+                        ) : (
+                          <span>Place Request (₹{product.price})</span>
+                        )}
                       </button>
                     </div>
                   </div>
