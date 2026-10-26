@@ -130,7 +130,7 @@ export default function Navbar() {
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
               >
                 <Code2 size={16} />
-                <span>Developer Details (24BCE2830)</span>
+                <span>Developer Details (24BIT0606)</span>
               </button>
 
               <div className="border-t border-gray-100 dark:border-gray-800 pt-4"></div>

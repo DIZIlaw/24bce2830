@@ -43,7 +43,7 @@ export default function Footer() {
               onClick={() => window.dispatchEvent(new CustomEvent('open-developer-modal'))}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors border border-emerald-200/50 dark:border-emerald-800/40"
             >
-              👨‍💻 Developer & Project Details (24BCE2830)
+              👨‍💻 Developer & Project Details (24BIT0606)
             </button>
             <span>Made for VITians 🚀</span>
           </div>

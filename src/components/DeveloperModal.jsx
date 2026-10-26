@@ -65,19 +65,19 @@ export default function DeveloperModal({ isOpen, onClose }) {
               {/* Developer Profile Card */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-500/20 flex-shrink-0">
-                  AP
+                  SR
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                      Aditya Pandey
+                      Shaurya Raghuvanshi
                     </h4>
                     <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-600 text-white rounded-md">
                       Developer
                     </span>
                   </div>
                   <p className="text-sm font-mono font-medium text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    Reg. No: 24BCE2830
+                    Reg. No: 24BIT0606
                   </p>
                 </div>
               </div>
@@ -108,7 +108,7 @@ export default function DeveloperModal({ isOpen, onClose }) {
                   <div>
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Faculty Guide / Supervision</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
-                      Prof. Sivakumar V
+                      Prof. Priya V
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       Database Systems • School of Computer Science & Engineering
