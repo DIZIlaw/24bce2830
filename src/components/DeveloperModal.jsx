@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Award, User, BookOpen, Database, Sparkles, Building2 } from 'lucide-react';
+import { X, Award, User, BookOpen, Database, Sparkles, Building2, Cloud } from 'lucide-react';
 
 export default function DeveloperModal({ isOpen, onClose }) {
   useEffect(() => {
@@ -87,12 +87,12 @@ export default function DeveloperModal({ isOpen, onClose }) {
                 {/* Academic Context */}
                 <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
                   <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 mt-0.5">
-                    <Database size={18} />
+                    <Cloud size={18} />
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Course / Platform</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
-                      Database System Project
+                      Cloud Architecture and Design Project
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       VIT Campus Marketplace — Closed campus secure buying & selling platform
@@ -111,7 +111,7 @@ export default function DeveloperModal({ isOpen, onClose }) {
                       Prof. Priya V
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      Database Systems • School of Computer Science & Engineering
+                      Cloud Architecture and Design • School of Computer Science & Engineering
                     </p>
                   </div>
                 </div>
